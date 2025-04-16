@@ -31,7 +31,7 @@ function Add-IntuneSettingsCatalogAssignments {
 
     # Microsoft Graph Connection check
     if ($null -eq (Get-MgContext)) {
-        Write-Error "Authentication needed. Please call Connect-g46GraphAppDelegated."
+        Write-Error "Authentication needed."
         Break
     }
 
