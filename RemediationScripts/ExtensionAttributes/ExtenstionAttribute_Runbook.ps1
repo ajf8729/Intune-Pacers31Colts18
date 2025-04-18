@@ -45,12 +45,22 @@ $json = @{
     }
     } | ConvertTo-Json
 
-#Update Device with $attribute Output
-
+#Logging the previous $attributeOutput
 $uri = 'https://graph.microsoft.com/beta/devices?$filter=displayName eq '+ "'$devicename'"
-$result = Invoke-RestMethod -Uri $uri -Headers $authheader -Method Get
+$result = Invoke-MgGraphRequest -uri $uri -Method GET
+Write-Output "DeviceName : $($result.value.displayName)"
+Write-Output "Current $extensionAttribute : $($result.value.extensionattributes.$extensionAttribute)"
+
 $deviceid = $($result.value[0].id)
 $deviceuri = "https://graph.microsoft.com/beta/devices/$deviceid"
 
-Invoke-RestMethod -Uri $deviceuri -Body $json -Method PATCH -ContentType "application/json" -Headers $authHeader
+#Update Device with $attribute Output
+Invoke-MgGraphRequest -uri $deviceuri -Body $json -Method PATCH -ContentType "application/json"
+
+#Logging the updated $attributeOutput
+$uri = 'https://graph.microsoft.com/beta/devices?$filter=displayName eq '+ "'$devicename'"
+$result = Invoke-MgGraphRequest -uri $uri -Method GET
+Write-Output "DeviceName : $($result.value.displayName)"
+Write-Output "Updated $extensionAttribute : $($result.value.extensionattributes.$extensionAttribute)"
+Write-Output "--------------------"
 }
