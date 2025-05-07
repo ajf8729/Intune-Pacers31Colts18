@@ -1,0 +1,65 @@
+#Variables to Modify
+$scriptName = "JoeLoveless - ExtensionAttributes - DomainName"
+$appregistrationName = "JoeLoveless-Intune-ExtensionAttributes"
+$extensionAttribute = "extensionAttribute1"
+$hours = "-4"
+
+# Get the timestamp for 2 hours ago
+$TimeThreshold = (Get-Date).AddHours($hours)
+
+# Connect to the Graph API
+Connect-MgGraph -Identity -NoWelcome
+
+# Get the script ID
+$uri = "https://graph.microsoft.com/beta/deviceManagement/deviceHealthScripts?`$filter=displayName eq '$scriptName'"
+$scriptId = (Invoke-MgGraphRequest -uri $uri -Method GET).value.id
+
+
+$resultCheck = @()
+$uri = "https://graph.microsoft.com/beta/deviceManagement/deviceHealthScripts/$scriptId/deviceRunStates/?`$expand=*"
+
+do {
+    $result = Invoke-MgGraphRequest -Uri $uri -Method GET
+    $resultCheck += $result
+
+    # Pagination
+    $uri = $result.'@odata.nextLink'
+} while ($uri)
+
+$filteredDevices = $resultCheck.value | Where-Object { 
+    [datetime]$_.lastStateUpdateDateTime -ge $TimeThreshold
+}
+
+$filteredDevices | ForEach-Object {
+    $attribute = $_.preRemediationDetectionScriptOutput
+    $devicename = $_.manageddevice.devicename
+    $deviceid = $_.manageddevice.id
+
+    $json = @{
+        "extensionAttributes" = @{
+            $extensionAttribute = $attribute
+        }
+    } | ConvertTo-Json
+
+    # Logging the previous extension attribute value
+    $deviceUri = "https://graph.microsoft.com/beta/devices?`$filter=displayName eq '$devicename'&`$select=id,displayName,extensionAttributes"
+    $deviceInfo = (Invoke-MgGraphRequest -Uri $deviceUri -Method GET).value
+
+    foreach ($device in $deviceInfo) {
+        $currentValue = $device.extensionAttributes.$extensionAttribute
+
+        # Update only if the new value is different from the current value
+        if ($attribute -ne $currentValue) {
+            Write-Output "Device Name : $($device.displayName)"
+            Write-Output "Current $extensionAttribute : $currentValue"
+
+            # Update Device with new attribute value
+            $patchUri = "https://graph.microsoft.com/beta/devices/$($device.id)"
+            Invoke-MgGraphRequest -Uri $patchUri -Body $json -Method PATCH -ContentType "application/json"
+
+            # Logging the updated attribute output
+            $updatedDevice = (Invoke-MgGraphRequest -Uri $deviceUri -Method GET).value
+            Write-Output "Updated $extensionAttribute : $($updatedDevice.extensionAttributes.$extensionAttribute)"
+        }
+    }
+}
