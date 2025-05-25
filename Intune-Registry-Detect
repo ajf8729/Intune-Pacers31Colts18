@@ -12,7 +12,7 @@ $Compliant = $true
 Try {
     foreach ($Key in $RegistryKeys) {
         # Attempt to retrieve the registry value
-        $RegistryValue = Get-ItemProperty -Path $Key.Path -Name $Key.Name -ErrorAction Stop | Select-Object -ExpandProperty $Key.Name
+        $RegistryValue = Get-ItemProperty -Path $Key.Path -Name $Key.Name -ErrorAction SilentlyContinue | Select-Object -ExpandProperty $Key.Name
     
         # Convert value if necessary (handling DWORD values)
         if ($Key.Type -eq "DWORD") {
