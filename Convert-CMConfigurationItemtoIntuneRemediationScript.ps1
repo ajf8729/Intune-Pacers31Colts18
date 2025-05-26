@@ -35,6 +35,12 @@ function Convert-CMConfigurationItemtoIntuneRemediationScript {
 
     [CmdletBinding()]
     Param(
+        [Parameter(Mandatory = $true)]
+        [string]$SiteCode,
+        [Parameter(Mandatory = $true)]
+        [string]$templateDetectionScript,
+        [Parameter(Mandatory = $true)]
+        [string]$templateRemediationScript,
         [Parameter(Mandatory = $False)]
         [array]$configurationItem,
         [Parameter(Mandatory = $False)]
@@ -42,22 +48,20 @@ function Convert-CMConfigurationItemtoIntuneRemediationScript {
         $scriptType = "Detection/Remediation"
     )
 
+    #Requires -Modules ConfigurationManager
+
     $StartingLocation = $pwd
 
     #region ConfigMgr Authentication
-    $SiteCode = "JL1"
-    Import-Module "$($ENV:SMS_ADMIN_UI_PATH)\..\ConfigurationManager.psd1"
     Set-Location "$SiteCode`:"
     #endregion
 
     #region Declarations
     $FunctionName = $MyInvocation.MyCommand.Name.ToString()
     $date = Get-Date -Format yyyyMMdd-HHmm
-    if ($outputdir.Length -eq 0) { $outputdir = $pwd }
+    if ($outputdir.Length -eq 0) { $outputdir = $StartingLocation }
     $OutputFilePath = "$OutputDir\$FunctionName-$date.csv"
     $LogFilePath = "$OutputDir\$FunctionName-$date.log"
-    $templateDetectionScript = "C:\Users\jlove\test\detect_.ps1"
-    $templateRemediationScript = "C:\Users\jlove\test\remediate_.ps1"
     $OutputDetectionScript = "$OutputDir\detect_$FunctionName-$date.ps1"
     $OutputRemediationScript = "$OutputDir\remediate_$FunctionName-$date.ps1"
     $ResultsArray = @()
